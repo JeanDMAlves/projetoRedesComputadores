@@ -15,8 +15,7 @@ class ReceiveThread(threading.Thread):
             data = self.conn.recv(1024).decode('utf-8')
             if not data:
                 break
-            print("")
-            print('Received:', data)
+            print(data)
             
 class PlayerClient(threading.Thread):
     """
@@ -36,7 +35,7 @@ class PlayerClient(threading.Thread):
         message_thread.start()
         self.setName()
         while True:
-            message = input('Enter a message (or "quit" to exit): ')
+            message = input('Digite uma mensagem (utilize -m para mandar mensagens para outros jogadores): \n')
             if message == 'quit':
                 break
             self.client.sendall(message.encode('utf-8'))

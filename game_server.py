@@ -1,6 +1,7 @@
 import socket
 import threading
 import random
+from subprocess import Popen
 from player import Player
 
 class GameServer(threading.Thread):
@@ -14,7 +15,6 @@ class GameServer(threading.Thread):
         threading.Thread.__init__(self)
         self.HOST = 'localhost'
         self.PORT = random.randint(9000, 10000)
-        # self.players = []
         self.players = {}
         self.lock = threading.Lock() # Objeto de "tranca" -> Concorrência
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # Usando TCP  
@@ -27,7 +27,6 @@ class GameServer(threading.Thread):
             conn, addr = self.server.accept()
             thread = PlayerThread(conn, addr, self)
             thread.start()
-
 
 class PlayerThread(threading.Thread):
     """
@@ -44,31 +43,33 @@ class PlayerThread(threading.Thread):
         with self.game.lock:
             self.game.players[self.conn] = Player(self.conn)
         
-        print('Connected:', self.addr)
+        print(f'Conectado a {self.addr}')
 
         while True:
             data = self.conn.recv(1024).decode('utf-8')
+            player = self.game.players[self.conn]
+            
             if not data: break
+            
             elif data[0:3] == "-n ": # Prefixo que indica que a mensagem é para colocar um novo nome
                 name = data[3:]
-                player = self.game.players[self.conn]
                 player.setName(name)
-            else:
-                player = self.game.players[self.conn]       
-                
-                print(f'<{player.getName()}>: {data}')
-                
+            
+            elif data[0:3] == "-m ": # Prefixo que indica que a mensagem é para enviar uma mensagem aos novos jogadores
+                send = f'<{player.getName()}>: {data}'
+                print(send)
                 with self.game.lock:
                     for player in self.game.players:
                         if not (player == self.conn): # Mando para todos os usuários, exceto o próprio usuário que enviou a mensagem                    
-                            player.sendall(data.encode('utf-8'))
+                            player.sendall(send.encode('utf-8'))
+            else:        
+                pass
 
         with self.game.lock:
             self.game.players.remove(self.conn)
             
         self.conn.close()
         print('Disconnected:', self.addr)
-                
 
 if __name__ == "__main__":
     game_thread = GameServer()
