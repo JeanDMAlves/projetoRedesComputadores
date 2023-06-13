@@ -49,6 +49,7 @@ class PlayerClient(threading.Thread):
         self.client.sendall(send.encode('utf-8'))
       
 class Player:
+    # Classe para representar um jogador, onde temos sua conexão, seu nome e seus pontos no jogo
     def __init__(self, conn):
         self.conn = conn
         self.name = None
