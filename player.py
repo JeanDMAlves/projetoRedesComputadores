@@ -52,7 +52,7 @@ class Player:
     def __init__(self, conn):
         self.conn = conn
         self.name = None
-        self.points = None
+        self.points = 0
         
     def setName(self, name):
         self.name = name

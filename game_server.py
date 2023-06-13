@@ -16,7 +16,8 @@ class GameServer(threading.Thread):
         self.PORT = random.randint(9000, 10000)
         self.players = {}
         self.lock = threading.Lock() # Objeto de "tranca" -> Concorrência
-        self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # Usando TCP  
+        self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # Usando TCP
+        self.game = None
         print(f'Jogo iniciado em {self.HOST}:{self.PORT}')
     
     def run(self):
@@ -37,7 +38,6 @@ class PlayerThread(threading.Thread):
         self.conn = conn
         self.addr = addr
         self.game_server = game_server
-        self.game = None
         
     def run(self):
         with self.game_server.lock:
@@ -63,13 +63,15 @@ class PlayerThread(threading.Thread):
                             player.sendall(send.encode('utf-8'))
                             
             elif data [0:3] == "-s": # prefiro que indica que a mensagem está para iniciar o jogo
-                if self.game == None:  
-                    self.game = Game(self.game_server, self)
-                    self.game.start()
+                if self.game_server.game == None:  
+                    self.game_server.game = Game(self.game_server)
+                    self.game_server.game.start()
                 else:
                     self.conn.sendall("Jogo já está rolando...".encode("utf-8"))
+            
             else:        
-                pass
+                if self.game_server.game != None:
+                    self.game_server.game.word_per_player[actual_player] = data
 
         with self.game_server.lock:
             self.game_server.players.remove(self.conn)
@@ -77,8 +79,6 @@ class PlayerThread(threading.Thread):
         self.conn.close()
         print('Disconnected:', self.addr)
         
-
-
 if __name__ == "__main__":
     game_thread = GameServer()
     game_thread.start()
