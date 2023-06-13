@@ -48,41 +48,43 @@ class PlayerThread(threading.Thread):
 
         # Thread que efetivamente vai receber as mensagens e decidir o que fazer com elas de acordo com os prefixos 
         while True:
-            data = self.conn.recv(1024).decode('utf-8')
-            actual_player = self.game_server.players[self.conn]
-            if not data: break
-            
-            elif data[0:3] == "-n ": # Prefixo que indica que a mensagem é para atribuir um novo nome a conexão
-                name = data[3:]
-                actual_player.setName(name)
-            
-            elif data[0:3] == "-m ": # Prefixo que indica que a mensagem é para enviar uma mensagem aos jogadores
-                send = f'<{actual_player.getName()}>: {data[3:]}'
-                print(send)
+            try:
+                data = self.conn.recv(1024).decode('utf-8')
+                actual_player = self.game_server.players[self.conn]
+                if not data: break
+                
+                elif data[0:3] == "-n ": # Prefixo que indica que a mensagem é para atribuir um novo nome a conexão
+                    name = data[3:]
+                    actual_player.setName(name)
+                
+                elif data[0:3] == "-m ": # Prefixo que indica que a mensagem é para enviar uma mensagem aos jogadores
+                    send = f'<{actual_player.getName()}>: {data[3:]}'
+                    print(send)
+                    with self.game_server.lock:
+                        for player in self.game_server.players:
+                            if not (player == self.conn): # Manda para todos os usuários, exceto o próprio usuário que enviou a mensagem                    
+                                player.sendall(send.encode('utf-8'))
+                                
+                elif data [0:3] == "-s": # prefiro que indica que a mensagem é para iniciar o jogo
+                    if self.game_server.game == None:  
+                        self.game_server.game = Game(self.game_server)
+                        self.game_server.game.start()
+                    else:
+                        self.conn.sendall("Jogo já está rolando...".encode("utf-8"))
+                        
+                # Caso a mensagem não tenha prefixo será entendido que o jogo já está acontecendo e a mensagem é para ser tratada
+                # como a palavra do jogo, sendo "enviada" para a classe Game
+                else: 
+                    if self.game_server.game != None:
+                        self.game_server.game.word_per_player[actual_player] = data
+            except: 
+                # Essa parte se encarrega de desconectar o jogador caso ele tenha enviado um comando para isso
                 with self.game_server.lock:
-                    for player in self.game_server.players:
-                        if not (player == self.conn): # Manda para todos os usuários, exceto o próprio usuário que enviou a mensagem                    
-                            player.sendall(send.encode('utf-8'))
-                            
-            elif data [0:3] == "-s": # prefiro que indica que a mensagem é para iniciar o jogo
-                if self.game_server.game == None:  
-                    self.game_server.game = Game(self.game_server)
-                    self.game_server.game.start()
-                else:
-                    self.conn.sendall("Jogo já está rolando...".encode("utf-8"))
+                    self.game_server.players.pop(self.conn, None)
                     
-            # Caso a mensagem não tenha prefixo será entendido que o jogo já está acontecendo e a mensagem é para ser tratada
-            # como a palavra do jogo, sendo "enviada" para a classe Game
-            else: 
-                if self.game_server.game != None:
-                    self.game_server.game.word_per_player[actual_player] = data
-        
-        # Essa parte se encarrega de desconectar o jogador caso ele tenha enviado um comando para isso
-        with self.game_server.lock:
-            self.game_server.players.remove(self.conn)
-            
-        self.conn.close()
-        print('Disconnected:', self.addr)
+                self.conn.close()
+                print('Disconnected:', self.addr)
+                break
         
 if __name__ == "__main__":
     game_thread = GameServer()
