@@ -42,7 +42,8 @@ class Game(threading.Thread):
         self.show_placement()
         self.reset_points_of_players() # No fim do jogo, reseta os pontos dos jogadores
         self.server.game = None
-    
+        self.send_to_all_players("------Jogo terminado------")
+        
     def send_to_all_players(self, text):
         # Método para enviar algum texto para todos os jogadores
         with self.server.lock:
