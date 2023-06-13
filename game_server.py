@@ -1,9 +1,8 @@
 import socket
 import threading
 import random
-from subprocess import Popen
 from player import Player
-
+from game import Game
 class GameServer(threading.Thread):
     """
         Classe responsável por iniciar o servidor de 1 jogo, 
@@ -33,43 +32,52 @@ class PlayerThread(threading.Thread):
         Classe responsável por lidar com as threads de cada player
         Cada player estará associado a um jogo, podem haver diversos players em um único jogo 
     """
-    def __init__(self, conn, addr, game):
+    def __init__(self, conn, addr, game_server):
         threading.Thread.__init__(self)
         self.conn = conn
         self.addr = addr
-        self.game = game
-
+        self.game_server = game_server
+        self.game = None
+        
     def run(self):
-        with self.game.lock:
-            self.game.players[self.conn] = Player(self.conn)
+        with self.game_server.lock:
+            self.game_server.players[self.conn] = Player(self.conn)
         
         print(f'Conectado a {self.addr}')
 
         while True:
             data = self.conn.recv(1024).decode('utf-8')
-            player = self.game.players[self.conn]
-            
+            actual_player = self.game_server.players[self.conn]
             if not data: break
             
             elif data[0:3] == "-n ": # Prefixo que indica que a mensagem é para colocar um novo nome
                 name = data[3:]
-                player.setName(name)
+                actual_player.setName(name)
             
             elif data[0:3] == "-m ": # Prefixo que indica que a mensagem é para enviar uma mensagem aos novos jogadores
-                send = f'<{player.getName()}>: {data}'
+                send = f'<{actual_player.getName()}>: {data[3:]}'
                 print(send)
-                with self.game.lock:
-                    for player in self.game.players:
+                with self.game_server.lock:
+                    for player in self.game_server.players:
                         if not (player == self.conn): # Mando para todos os usuários, exceto o próprio usuário que enviou a mensagem                    
                             player.sendall(send.encode('utf-8'))
+                            
+            elif data [0:3] == "-s": # prefiro que indica que a mensagem está para iniciar o jogo
+                if self.game == None:  
+                    self.game = Game(self.game_server, self)
+                    self.game.start()
+                else:
+                    self.conn.sendall("Jogo já está rolando...".encode("utf-8"))
             else:        
                 pass
 
-        with self.game.lock:
-            self.game.players.remove(self.conn)
+        with self.game_server.lock:
+            self.game_server.players.remove(self.conn)
             
         self.conn.close()
         print('Disconnected:', self.addr)
+        
+
 
 if __name__ == "__main__":
     game_thread = GameServer()

@@ -4,7 +4,7 @@ import sys
 
 class ReceiveThread(threading.Thread):
     """
-        Classe (thread) usada para receber mensagens vindas do servidor
+        Classe (thread) usada para receber e "printar" mensagens vindas do servidor
     """
     def __init__(self, conn):
         threading.Thread.__init__(self)
@@ -34,8 +34,9 @@ class PlayerClient(threading.Thread):
         message_thread = ReceiveThread(self.client)
         message_thread.start()
         self.setName()
+        print('Digite uma mensagem (utilize -m para mandar mensagens para outros jogadores):')
         while True:
-            message = input('Digite uma mensagem (utilize -m para mandar mensagens para outros jogadores): \n')
+            message = input("")
             if message == 'quit':
                 break
             self.client.sendall(message.encode('utf-8'))
