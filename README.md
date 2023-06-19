@@ -1,6 +1,7 @@
 # Servidor de Jogo
 
 Este código em Python configura um servidor de jogo que permite que vários jogadores se conectem e joguem. Ele utiliza sockets para comunicação em rede e multithreading para lidar com várias conexões de jogadores simultaneamente.
+Nomes: Jean Alves, Maria Julia Acosta, Felipe Robaina
 
 ## Pré-requisitos
 
