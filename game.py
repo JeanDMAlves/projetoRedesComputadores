@@ -69,6 +69,6 @@ class Game(threading.Thread):
         # Mostra para os jogadores quantos pontos cada um fez nesse jogo
         send = ""
         for player in self.server.players.values():
-            send += f"*<{player.getName()} fez {player.points} pontos>*"
+            send += f"*<{player.getName()} fez {player.points} pontos>*\n"
         self.send_to_all_players(send)
         
